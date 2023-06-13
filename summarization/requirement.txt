@@ -1,0 +1,10 @@
+nltk
+nltk package "averaged_perceptron_tagger"
+nltk.download('averaged_perceptron_tagger')
+
+# request for w2v service.
+Flask
+Flask-Restful
+gensim
+# required for wmd pyemd
+pyemd
