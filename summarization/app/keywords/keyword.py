@@ -4,6 +4,7 @@ from summarization.app.keywords.textrank.graph.pagerank_weighted import INVERTED
 from summarization.app.keywords.textrank.graph.pagerank_weighted import get_page_rank_score, WITH_POSITION_BIAS, WITH_TFIDF_POSITION_BIAS, WITH_TOPIC_POSITION_BIAS, WITHOUT_BIAS, my_get_page_rank_score
 from summarization.app.keywords.textrank.syntactic_unit import SyntacticUnit
 from summarization.app.keywords.textrank.tokenizer import Tokenizer
+from summarization.app.utils import utils_EN
 
 
 def _lemmas_to_words(token_dict):
@@ -78,8 +79,8 @@ class KeyWord(object):
         # 我的返回结构
         # [[1.原句，2.token_list], ...]
         my_token_list = []
-        sents = sent_tokenize(text)
-        for i in sents:
+        # sents = sent_tokenize(text)
+        for i in utils_EN.UtilsEN.split_sentences(utils_EN.UtilsEN("english"), text):
             temp = []
             temp_token_list, _ = self.tokenizer.tokenize_by_word(i, apply_token_filters=True, with_out_filter=True)
             # print(temp_token_list)
