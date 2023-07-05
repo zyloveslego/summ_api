@@ -31,7 +31,7 @@ def get_essay_grade(request):
 
         text = text + indicator
 
-        openai.api_key = "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"
+        openai.api_key = ""
 
         ft_model = 'ada:ft-librum2:set8-conventions-2023-07-03-20-36-38'
         res = openai.Completion.create(model=ft_model, prompt=text, max_tokens=1, temperature=0)
