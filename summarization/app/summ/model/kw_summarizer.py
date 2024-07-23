@@ -7,6 +7,8 @@ import nltk
 from summarization.app.topic_modeling.clustering.spectral_clustering import SpectralClustering
 from summarization.app.keywords.keysentence import KeySentence
 
+# import tracemalloc
+from memory_profiler import profile
 
 def softplus_enhancement(keywords_tuples):
     index = 0
@@ -15,6 +17,22 @@ def softplus_enhancement(keywords_tuples):
         keywords_tuples[index] = keyword, enhanced_score
         index = index + 1
 
+#
+# import psutil
+# import os
+# def get_current_process_memory():
+#     # 获取当前进程的 PID
+#     pid = os.getpid()
+#     # 使用 psutil 获取进程对象
+#     process = psutil.Process(pid)
+#
+#     # 获取进程的内存占用情况
+#     memory_info = process.memory_info()
+#
+#     # 打印内存占用信息
+#     print(f"Current process ID: {pid}")
+#     print(f"Memory used: {memory_info.rss / (1024 ** 2):.2f} MB")
+#     print(f"Memory used (swap): {memory_info.vms / (1024 ** 2):.2f} MB")
 
 class KWSummarizer(Summarizer):
     def __init__(self, language):
@@ -171,7 +189,8 @@ class TextrankWord(KWSummarizer):
             sentence_list = self.utils.split_sentences(text)
 
         # Step 1: Use keywords extractor get keywords with score.
-        keywords = self._keywords_extract(" ".join(sentence_list), article_structure=article_structure)
+        # 原版
+        keywords = self._keywords_extract(" ".join(sentence_list), article_structure=INVERTED_PYRAMID)
 
         # Step 2: Enhance the score by using some enhancement method like softplus
         if self._keyword_enhance:
@@ -187,16 +206,38 @@ class TextrankWord(KWSummarizer):
         # Step 5: put the sentence back to its original order
         return self._sentence_reordering(selected_sentence, sentence_list, show_score, show_ranking)
 
+    def summarize_combine_sentence(self, text, article_structure=INVERTED_PYRAMID, length_ratio=None, sentence_ratio=None, words_count=None, sentence_count=None, show_score=False, show_ranking=False):
+        if not length_ratio and not sentence_ratio and not words_count and not sentence_count:
+            print("please at least choose a summary length")
+            return None
+        # Step 0: Set sentence_list if not exist
+        if isinstance(text, list):
+            sentence_list = text
+        else:
+            sentence_list = self.utils.split_sentences(text)
+
+        # print(len(" ".join(sentence_list)))
+        keywords = self._keywords_extract({"ori_text": " ".join(sentence_list), "ori_list": sentence_list},
+                                          article_structure=INVERTED_PYRAMID)
+
+        return keywords
+
+
+    # @profile(precision=4)
     def _keywords_extract(self, text, article_structure=INVERTED_PYRAMID):
         """
         Step one: Use keywords extractor get keywords with score.
         :return: a tuple list each tuple contains a keyword and a score [(keyword, score), (keyword, score)]
         """
+        if isinstance(text, dict):
+            return self.textrank.extract_combine_sentence(text, ratio=1, position_topic_biased=1,
+                                     article_structure=article_structure, return_scores=True)
         if article_structure == UNIFORM:
             return self.textrank.extract(text, ratio=1, position_topic_biased=0, return_scores=True)
         else:
             return self.textrank.extract(text, ratio=1, position_topic_biased=1,
                                      article_structure=article_structure, return_scores=True)
+
 
     def _keywords_enhancement(self, keywords_tuples):
         """
@@ -220,7 +261,7 @@ class TextrankWord(KWSummarizer):
             token_list = self.utils.tokenize(sentence)
             for keyword, score in keywords:
                 if keyword in token_list:
-                    # # word_count could be how many time that the keyword appear in a sentence.
+                    # # word_count could be how many times that the keyword appear in a sentence.
                     word_count = sentence.count(keyword)
                     # # word_count could be 1 if we only see if the keyword exist
                     # word_count = 1

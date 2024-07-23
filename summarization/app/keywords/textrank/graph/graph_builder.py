@@ -15,6 +15,13 @@ def _remove_unreachable_nodes(graph):
             graph.del_node(node)
 
 
+# def build_word_graph(token_dict, tag_filtered_tokens, original_tokens, weighting):
+#     graph = Graph()
+#     _add_nodes(graph, tag_filtered_tokens)
+#     weighting.set_graph_weighted_edges(graph=graph, token_dict=token_dict, original_tokens=original_tokens)
+#     _remove_unreachable_nodes(graph)
+#     return graph
+
 def build_word_graph(token_dict, tag_filtered_tokens, original_tokens, weighting):
     graph = Graph()
     _add_nodes(graph, tag_filtered_tokens)

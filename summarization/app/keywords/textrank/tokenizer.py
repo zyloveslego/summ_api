@@ -36,6 +36,10 @@ class Tokenizer(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def tokenize_by_sentence_with_sentence(self, text, apply_token_filters=True, customize_token_filters=None):
+        raise NotImplementedError
+
+    @abstractmethod
     def pos_tag_filter(self, units_list, include_tags=None, exclude_tags=None):
         raise NotImplementedError
 
@@ -70,6 +74,12 @@ class TokenizerEN(Tokenizer):
         units = SyntacticUnit.merge_syntactic_units(original_sentences, filtered_sentences)
         return units
 
+    def tokenize_by_sentence_with_sentence(self, text, apply_token_filters=True, customize_token_filters=None):
+        filtered_sentences = self.utils.tokens_filter(text, customize_filters=customize_token_filters)
+
+        units = SyntacticUnit.merge_syntactic_units(text, filtered_sentences)
+        return units
+
     def pos_tag_filter(self, units_list, include_tags=None, exclude_tags=None):
         if not include_tags:
             include_tags = ['NN', 'JJ']
@@ -100,13 +110,10 @@ class TokenizerCN(Tokenizer):
 
     def tokenize_by_word(self, text, apply_token_filters=True, customize_token_filters=None, with_out_filter=False):
         original_words = self.utils.tokenize(text)
-
         filtered_words = None
         if apply_token_filters:
             filtered_words = self.utils.tokens_filter(original_words, customize_filters=customize_token_filters)
-
         tags = self.utils.tagger(text)
-
         units = SyntacticUnit.merge_syntactic_units(original_words, filtered_words, tags)
         units_without_filter = SyntacticUnit.merge_syntactic_units(original_words)
 
@@ -140,6 +147,12 @@ class TokenizerCN(Tokenizer):
             filtered_sentences = self.utils.tokens_filter(original_sentences, customize_filters=customize_token_filters)
 
         units = SyntacticUnit.merge_syntactic_units(original_sentences, filtered_sentences)
+        return units
+
+    def tokenize_by_sentence_with_sentence(self, text, apply_token_filters=True, customize_token_filters=None):
+        filtered_sentences = self.utils.tokens_filter(text, customize_filters=customize_token_filters)
+
+        units = SyntacticUnit.merge_syntactic_units(text, filtered_sentences)
         return units
 
     def tokenize_by_phrase(self, text, apply_token_filters=True, customize_token_filters=None, with_out_filter=False):

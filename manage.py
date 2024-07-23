@@ -19,4 +19,11 @@ def main():
 
 
 if __name__ == '__main__':
+    import re
+
+
+    def my_tokenizer(x):
+        return re.findall(r'[^\W]+', x)
+
+
     main()

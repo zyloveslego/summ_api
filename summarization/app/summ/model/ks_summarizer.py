@@ -1,13 +1,13 @@
 from math import log10
 
-from .textrank_sentence.pagerank_weighted import pagerank_weighted_scipy as _pagerank
-from .textrank_sentence.pagerank_weighted import pagerank_weighted_position_biased as _pagerank_position_biased
-from .textrank_sentence.preprocessing.textcleaner import clean_text_by_sentences as _clean_text_by_sentences
-from .textrank_sentence.preprocessing.textcleaner import clean_text_by_sentences_self_define as _clean_text_by_sentences_self_define
-from .textrank_sentence.commons import build_graph as _build_graph
-from .textrank_sentence.commons import remove_unreachable_nodes as _remove_unreachable_nodes
+from summarization.app.summ.model.textrank_sentence.pagerank_weighted import pagerank_weighted_scipy as _pagerank
+from summarization.app.summ.model.textrank_sentence.pagerank_weighted import pagerank_weighted_position_biased as _pagerank_position_biased
+from summarization.app.summ.model.textrank_sentence.preprocessing.textcleaner import clean_text_by_sentences as _clean_text_by_sentences
+from summarization.app.summ.model.textrank_sentence.preprocessing.textcleaner import clean_text_by_sentences_self_define as _clean_text_by_sentences_self_define
+from summarization.app.summ.model.textrank_sentence.commons import build_graph as _build_graph
+from summarization.app.summ.model.textrank_sentence.commons import remove_unreachable_nodes as _remove_unreachable_nodes
 import math
-from app.utils.tovec_service import ToVecService
+from summarization.app.utils.tovec_service import ToVecService
 from itertools import combinations
 import nltk
 from nltk.corpus import stopwords

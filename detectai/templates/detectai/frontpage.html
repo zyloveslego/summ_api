@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detect AI</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 20px;
+        }
+
+        #text-input {
+            width: 80%;
+            height: 200px;
+        }
+
+        .button {
+            display: inline-block;
+            margin: 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            text-align: center;
+            text-decoration: none;
+            outline: none;
+            color: #fff;
+            background-color: #4CAF50;
+            border: none;
+            border-radius: 5px;
+            box-shadow: 0 4px #357a38;
+        }
+
+        .button:hover {
+            background-color: #45a049;
+        }
+
+
+        #large-text-area {
+            width: 80%;
+            height: 1000px;
+            margin-top: 50px;
+            margin-left: 12%;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <h1>Detect AI</h1>
+
+    <label for="text-input"></label><textarea id="text-input" placeholder="Type your text here..."></textarea>
+
+    <br>
+
+    <button class="button" onclick="overlapwithwords()">Overlap with words</button>
+    <button class="button" onclick="overlapwithwords()">Overlap with similarity</button>
+    <button class="button" onclick="loglikely()">Likelihood</button>
+    <br>
+    <button class="button" onclick="gpt()">GPT-3.5 few shots</button>
+    <button class="button" onclick="">Perplexity and entropy</button>
+    <button class="button" onclick="SGD()">SGD_Classifier</button>
+
+    <div id="responseArea"></div>
+
+    <p id="large-text-area">
+        <b>Overlap with words</b>: 取输入文本的前50%，然后让gpt-3.5生成后50%，根据输入文本的后50%和gpt生成的后50%计算出word overlap做判断。<br>
+        <b>Overlap with similarity</b>: 与上面类似，在计算word overlap时同时计算了文本的similarity。<br>
+        <b>Likelihood</b>: 取输入文本的前50%，然后让gpt-3生成输入文本后50%的log likelihood，计算这个likelihood的均值。该方法取自论文https://arxiv.org/abs/2301.11305。<br>
+        <b>GPT-3.5 few shots</b>: 根据Openai官网的描述，提供50-100条训练数据。<br>
+        <b>Perplexity and entropy</b>: 暂时没做完。<br>
+        <b>SGD_Classifier</b>: 选取多个ngram的vectorizer，用多个SGD classifier做加权分类。<br>
+    </p>
+
+
+    <script>
+        function loglikely() {
+            document.getElementById("responseArea").innerText = "Detecting...";
+            // 创建一个XMLHttpRequest对象
+            var xhr = new XMLHttpRequest();
+
+            // 设置POST请求，指定目标URL
+            xhr.open("POST", "http://wangserver.ddns.net:8631/detectai/loglikely", true);
+
+            // 设置请求头，如果需要的话
+            xhr.setRequestHeader("Content-Type", "application/json");
+
+            // 定义处理响应的函数
+            xhr.onreadystatechange = function () {
+                  if (xhr.readyState === 4) {
+                    // 处理成功响应
+                    if (xhr.status === 200) {
+                        // 更新页面上的响应区域
+                        document.getElementById("responseArea").innerText = xhr.responseText;
+                    } else {
+                        // 处理错误响应
+                        console.error("请求失败：" + xhr.status);
+                    }
+                }
+            };
+
+            // 获取Textarea的内容
+            var textareaContent = document.getElementById("text-input").value;
+
+            console.log(textareaContent)
+
+            // 构建要发送的数据字符串
+            var jsonData = {
+                'text': textareaContent
+            };
+
+            var jsonDataString = JSON.stringify(jsonData);
+
+            // 发送数据
+            xhr.send(jsonDataString);
+        }
+
+        function overlapwithwords() {
+            document.getElementById("responseArea").innerText = "Detecting...";
+            // 创建一个XMLHttpRequest对象
+            var xhr = new XMLHttpRequest();
+
+            // 设置POST请求，指定目标URL
+            xhr.open("POST", "http://wangserver.ddns.net:8631/detectai/overlapwithwords", true);
+
+            // 设置请求头，如果需要的话
+            xhr.setRequestHeader("Content-Type", "application/json");
+
+            // 定义处理响应的函数
+            xhr.onreadystatechange = function () {
+                  if (xhr.readyState === 4) {
+                    // 处理成功响应
+                    if (xhr.status === 200) {
+                        // 更新页面上的响应区域
+                        document.getElementById("responseArea").innerText = xhr.responseText;
+                    } else {
+                        // 处理错误响应
+                        console.error("请求失败：" + xhr.status);
+                    }
+                }
+            };
+
+            // 获取Textarea的内容
+            var textareaContent = document.getElementById("text-input").value;
+
+            console.log(textareaContent)
+
+            // 构建要发送的数据字符串
+            var jsonData = {
+                'text': textareaContent
+            };
+
+            var jsonDataString = JSON.stringify(jsonData);
+
+            // 发送数据
+            xhr.send(jsonDataString);
+        }
+
+        function SGD() {
+            document.getElementById("responseArea").innerText = "Detecting...";
+            // 创建一个XMLHttpRequest对象
+            var xhr = new XMLHttpRequest();
+
+            // 设置POST请求，指定目标URL
+            xhr.open("POST", "http://wangserver.ddns.net:8631/detectai/SGDClassifier", true);
+
+            // 设置请求头，如果需要的话
+            xhr.setRequestHeader("Content-Type", "application/json");
+
+            // 定义处理响应的函数
+            xhr.onreadystatechange = function () {
+                  if (xhr.readyState === 4) {
+                    // 处理成功响应
+                    if (xhr.status === 200) {
+                        // 更新页面上的响应区域
+                        document.getElementById("responseArea").innerText = xhr.responseText;
+                    } else {
+                        // 处理错误响应
+                        console.error("请求失败：" + xhr.status);
+                    }
+                }
+            };
+
+            // 获取Textarea的内容
+            var textareaContent = document.getElementById("text-input").value;
+
+            console.log(textareaContent)
+
+            // 构建要发送的数据字符串
+            var jsonData = {
+                'text': textareaContent
+            };
+
+            var jsonDataString = JSON.stringify(jsonData);
+
+            // 发送数据
+            xhr.send(jsonDataString);
+        }
+
+        function gpt() {
+            document.getElementById("responseArea").innerText = "Detecting...";
+            // 创建一个XMLHttpRequest对象
+            var xhr = new XMLHttpRequest();
+
+            // 设置POST请求，指定目标URL
+            xhr.open("POST", "http://wangserver.ddns.net:8631/detectai/gpt_finetune", true);
+
+            // 设置请求头，如果需要的话
+            xhr.setRequestHeader("Content-Type", "application/json");
+
+            // 定义处理响应的函数
+            xhr.onreadystatechange = function () {
+                  if (xhr.readyState === 4) {
+                    // 处理成功响应
+                    if (xhr.status === 200) {
+                        // 更新页面上的响应区域
+                        document.getElementById("responseArea").innerText = xhr.responseText;
+                    } else {
+                        // 处理错误响应
+                        console.error("请求失败：" + xhr.status);
+                    }
+                }
+            };
+
+            // 获取Textarea的内容
+            var textareaContent = document.getElementById("text-input").value;
+
+            console.log(textareaContent)
+
+            // 构建要发送的数据字符串
+            var jsonData = {
+                'text': textareaContent
+            };
+
+            var jsonDataString = JSON.stringify(jsonData);
+
+            // 发送数据
+            xhr.send(jsonDataString);
+        }
+    </script>
+</body>
+</html>

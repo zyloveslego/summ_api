@@ -2,9 +2,10 @@ import summarization.app.keywords.textrank.graph.graph_builder as graph_builder
 import summarization.app.keywords.textrank.weighting as Weighting
 from summarization.app.keywords.textrank.graph.pagerank_weighted import INVERTED_PYRAMID, PYRAMID, HOURGLASS, UNIFORM
 from summarization.app.keywords.textrank.graph.pagerank_weighted import get_page_rank_score, WITH_POSITION_BIAS, WITH_TFIDF_POSITION_BIAS, WITH_TOPIC_POSITION_BIAS, WITHOUT_BIAS, my_get_page_rank_score
-from summarization.app.keywords.textrank.tokenizer import Tokenizer
+from summarization.app.keywords.textrank.tokenizer import Tokenizer, TokenizerCN
 from summarization.app.keywords.textrank.syntactic_unit import SyntacticUnit
-
+from memory_profiler import profile
+from nltk.data import load
 
 def _lemmas_to_words(token_dict):
     """
@@ -62,6 +63,13 @@ class KeySentence(object):
 
         return token_list
 
+    def _generate_candidate_with_sentence(self, text):
+        token_list = self.tokenizer.tokenize_by_sentence_with_sentence(text, apply_token_filters=True)
+        # print(token_list)
+
+        return token_list
+
+    # @profile(precision=4)
     def extract(self, text, ratio=1, sentences=None, position_topic_biased=WITHOUT_BIAS,
                 article_structure=INVERTED_PYRAMID, return_scores=False):
         """
@@ -75,12 +83,23 @@ class KeySentence(object):
         combined keywords. that is the difference.
         :return:
         """
-        if not isinstance(text, str):
-            raise ValueError("Text parameter must be a Unicode object (str)!")
+        # zy: this part modified
+        # if not isinstance(text, str):
+        #     raise ValueError("Text parameter must be a Unicode object (str)!")
 
-        token_list = self._generate_candidate(text)
+        if isinstance(text, list):
+            token_list = self._generate_candidate_with_sentence(text)
+        else:
+            token_list = self._generate_candidate(text)
+
+        # print(len(token_list))
+
+        # token_list = self._generate_candidate(text)
+        # zy: end
         token_dict = SyntacticUnit.to_dict(token_list)
         graph = graph_builder.build_sentence_graph(token_dict, token_list, self.weighting)
+
+        # print(len(graph.nodes()))
 
         # PageRank cannot be run in an empty graph.
         if len(graph.nodes()) == 0:
@@ -97,7 +116,15 @@ class KeySentence(object):
         key_sentence = self._add_scores_to_sentences(token_dict, graph, pagerank_scores, len(graph.nodes()))
 
         result_length = self._get_result_length(graph, pagerank_scores, ratio, sentences)
-        return self._format_results(key_sentence, return_scores, result_length)
+
+        # {sentence: (score, ranking)}
+        selected_sentence = {}
+        for index, item in enumerate(self._format_results(key_sentence, True, result_length)):
+            sent, score = item
+            selected_sentence.setdefault(sent, (score, index))
+
+        # return self._format_results(key_sentence, True, result_length)
+        return self._sentence_reordering(selected_sentence, token_list, show_score=True, show_ranking=True)
 
     def _get_result_length(self, graph, pagerank_scores, ratio, words):
         lemmas = graph.nodes()
@@ -111,6 +138,8 @@ class KeySentence(object):
         # compute result length
         extracted_lemmas = [(pagerank_scores[lemmas[i]], lemmas[i],) for i in range(result_length)]
 
+        print(extracted_lemmas)
+
         lemmas_to_word = _lemmas_to_words(token_dict)
 
         keywords = {}
@@ -119,6 +148,8 @@ class KeySentence(object):
             # all the words with the same word original shared the same score. no effect for chinese.
             for keyword in keyword_list:
                 keywords[keyword] = score
+
+        print(keywords)
 
         return keywords
 
@@ -132,3 +163,24 @@ class KeySentence(object):
         if return_scores:
             return [(word, keyword_scores[word]) for word in keywords]
         return keywords
+
+    def _sentence_reordering(self, selected_sentence, sentences, show_score, show_ranking):
+        """
+        :param selected_sentence: {sentence:(score, ranking)}
+        :param sentences:
+        :param show_score:
+        :param show_ranking:
+        :return:
+        """
+        summary = []
+        for i, sentence in enumerate(sentences):
+            if sentence.text in selected_sentence:
+                if show_ranking and show_score:
+                    summary.append((i, sentence.text, *selected_sentence[sentence.text]))
+                elif show_score:
+                    summary.append((i, sentence.text, selected_sentence[sentence.text][0]))
+                elif show_ranking:
+                    summary.append((i, sentence.text, selected_sentence[sentence.text][1]))
+                else:
+                    summary.append(sentence.text)
+        return summary

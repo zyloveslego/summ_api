@@ -17,7 +17,7 @@ import re
 
 from .snowball import SnowballStemmer
 from .stopwords import get_stopwords_by_language
-from app.summa.syntactic_unit import SyntacticUnit
+from summarization.app.summa.syntactic_unit import SyntacticUnit
 
 
 # Utility functions adapted from Gensim v0.10.0:

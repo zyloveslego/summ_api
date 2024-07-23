@@ -7,6 +7,7 @@ from six.moves import xrange
 from summarization.app.topic_modeling.demo import llda_topic_word
 from summarization.app.keywords.tf_idf.tf_idf_keyword import TFIDFKeywords
 from summarization.app.keywords.textrank.graph.token_position import *
+from multiprocessing import Pool
 
 WITHOUT_BIAS = 0
 WITH_POSITION_BIAS = 1
@@ -34,14 +35,21 @@ def my_get_page_rank_score(graph, token_list, position_topic_biased, article_str
         return pagerank_weighted(graph)
 
     if position_topic_biased == WITH_POSITION_BIAS:
-        # pagerank_scores = pagerank_weighted_position_biased(graph, token_list, article_structure)
-        pagerank_scores = my_pagerank_weighted_position_biased(graph, token_list, article_structure, text)
+        pagerank_scores = pagerank_weighted_position_biased(graph, token_list, article_structure)
+        # pagerank_scores = my_pagerank_weighted_position_biased(graph, token_list, article_structure, text)
     elif position_topic_biased == WITH_TOPIC_POSITION_BIAS:
         pagerank_scores = pagerank_weighted_topic_position_biased(graph, token_list, article_structure)
     elif position_topic_biased == WITH_TFIDF_POSITION_BIAS:
         pagerank_scores = pagerank_weighted_topic_position_biased(graph, token_list, article_structure)
     else:
         pagerank_scores = pagerank_weighted(graph)
+    return pagerank_scores
+
+
+def get_page_rank_score_combine_sentence(graph, token_list, position_topic_biased, article_structure,
+                                         text_sentence_list):
+    # text_sentence_list: [[1.原句，2.tag_filtered_tokens], ...]
+    pagerank_scores = pagerank_weighted_combine_sentence(graph, text_sentence_list)
     return pagerank_scores
 
 
@@ -70,6 +78,122 @@ def pagerank_weighted(graph, damping=0.85):
 
     # Because pagerank_matrix is positive, vec is always real (i.e. not complex)
     return process_results(graph, vec.real)
+
+
+def pagerank_weighted_combine_sentence(graph, text_sentence_list, damping=0.85):
+    print("build_adjacency_matrix")
+    adjacency_matrix = build_adjacency_matrix_combine_sentence(graph, text_sentence_list)
+    rows, cols = adjacency_matrix.shape
+    # print(adjacency_matrix.shape)
+    probability_matrix = build_probability_matrix_combine_sentence(rows)
+    # print(probability_matrix.shape)
+
+    pagerank_matrix = damping * adjacency_matrix.todense() + (1 - damping) * probability_matrix
+    # print(pagerank_matrix.shape)
+
+    vec = principal_eigenvector(pagerank_matrix.T)
+
+    return process_results_combine_sentence(text_sentence_list, vec.real)
+
+
+def process_combinations(args):
+    index_i, i, text_sentence_list_index, word_array = args
+    _, tokens_i = text_sentence_list_index[index_i][0], text_sentence_list_index[index_i][1]
+    zero_row = []
+    for index_j, j in enumerate(text_sentence_list_index):
+        if index_i < index_j:
+            _, tokens_j = j[0], j[1]
+            row_indices = tokens_i
+            col_indices = tokens_j
+            indices_combinations = [(row, col) for row in row_indices for col in col_indices]
+            sum_of_values = sum([word_array[row, col] for row, col in indices_combinations])
+            zero_row.append((index_j, sum_of_values))
+    return index_i, zero_row
+
+
+def build_adjacency_matrix_combine_sentence(graph, text_sentence_list):
+    # need return graph_combine_sentence
+    # adjacency_matrix = []
+    # graph_combine_sentence = graph
+    # return adjacency_matrix
+    import numpy as np
+
+    nodes = graph.nodes()
+    length = len(nodes)
+    word_array = np.zeros((length, length))
+
+    for i in xrange(length):
+        current_node = nodes[i]
+        neighbors_sum = sum(graph.edge_weight((current_node, neighbor)) for neighbor in graph.neighbors(current_node))
+        for j in xrange(length):
+            edge_weight = float(graph.edge_weight((current_node, nodes[j])))
+            if i != j and edge_weight != 0.0:
+                # row.append(i)
+                # col.append(j)
+                # data.append(edge_weight / neighbors_sum)
+                word_array[i, j] = edge_weight / neighbors_sum
+
+    # word_csr_matrix = csr_matrix((data, (row, col)), shape=(length, length))
+
+    sent_count = len(text_sentence_list)
+    zero_array = np.zeros((sent_count, sent_count))
+
+    text_sentence_list_index = []
+    for i in text_sentence_list:
+        sent, tokens = i[0], i[1]
+        text_sentence_list_index.append([sent, [index for index, item in enumerate(nodes) if item in tokens]])
+
+    # 单线程代码 start
+    # count = 0
+    for index_i, i in enumerate(text_sentence_list_index):
+        # if count % 100 == 0:
+        #     print(count)
+        # count += 1
+        _, tokens_i = i[0], i[1]
+        # print(index_i)
+        for index_j, j in enumerate(text_sentence_list_index):
+            if index_i < index_j:
+                _, tokens_j = j[0], j[1]
+
+                row_indices = tokens_i
+                col_indices = tokens_j
+                indices_combinations = [(row, col) for row in row_indices for col in col_indices]
+                # sum_of_values = sum([word_csr_matrix[row, col] for row, col in indices_combinations])
+                sum_of_values = sum([word_array[row, col] for row, col in indices_combinations])
+                # sum_of_values = len(indices_combinations)
+                zero_array[index_i, index_j] = sum_of_values
+                zero_array[index_j, index_i] = sum_of_values
+    # 单线程代码 end
+
+    # # 多线程代码 start
+    # # Prepare arguments for multiprocessing
+    # args_list = [(index_i, i, text_sentence_list_index, word_array) for index_i, i in
+    #              enumerate(text_sentence_list_index)]
+    #
+    # # Use multiprocessing Pool
+    # with Pool() as pool:
+    #     results = pool.map(process_combinations, args_list)
+    #
+    # # Fill zero_array with results
+    # for index_i, zero_row in results:
+    #     for index_j, value in zero_row:
+    #         zero_array[index_i, index_j] = value
+    #         zero_array[index_j, index_i] = value
+    # # 多线程代码 end
+
+    # print(zero_array)
+
+    return csr_matrix(zero_array)
+
+
+def build_probability_matrix_combine_sentence(rows):
+    dimension = rows
+    matrix = empty_matrix((dimension, dimension))
+
+    probability = 1.0 / float(dimension)
+    matrix.fill(probability)
+
+    return matrix
 
 
 def pagerank_weighted_position_biased(graph, token_list, article_structure, damping=0.85):
@@ -102,45 +226,47 @@ def pagerank_weighted_position_biased(graph, token_list, article_structure, damp
     return process_results(graph, vec.real)
 
 
-def my_pagerank_weighted_position_biased(graph, token_list, article_structure, text, damping=0.85):
-    """Get dictionary of `graph` nodes and its ranks.
-
-    Parameters
-    ----------
-    graph : :class:`~gensim.summarization.graph.Graph`
-        Given graph.
-    token_list: for biased page rank.
-
-    damping : float
-        Damping parameter, optional
-
-    Returns
-    -------
-    dict
-        Nodes of `graph` as keys, its ranks as values.
-
-    """
-    adjacency_matrix = build_adjacency_matrix(graph)
-
-    # 这里修改
-    # token_position_dict = get_token_position_weight(token_list, article_structure)
-
-    # mine
-    from sentence_transformers import SentenceTransformer
-    model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
-    article_structure = 4
-
-    token_position_dict = my_token_position_weight(token_list, article_structure, model, text)
-    # ---
-
-    probability_matrix = build_probability_matrix_position_biased(graph, token_position_dict)
-
-    pagerank_matrix = damping * adjacency_matrix.todense() + (1 - damping) * probability_matrix
-
-    vec = principal_eigenvector(pagerank_matrix.T)
-
-    # Because pagerank_matrix is positive, vec is always real (i.e. not complex)
-    return process_results(graph, vec.real)
+# def my_pagerank_weighted_position_biased(graph, token_list, article_structure, text, damping=0.85):
+#     """Get dictionary of `graph` nodes and its ranks.
+#
+#     Parameters
+#     ----------
+#     graph : :class:`~gensim.summarization.graph.Graph`
+#         Given graph.
+#     token_list: for biased page rank.
+#
+#     damping : float
+#         Damping parameter, optional
+#
+#     Returns
+#     -------
+#     dict
+#         Nodes of `graph` as keys, its ranks as values.
+#
+#     """
+#     adjacency_matrix = build_adjacency_matrix(graph)
+#
+#     # 这里修改
+#     # token_position_dict = get_token_position_weight(token_list, article_structure)
+#
+#     # mine
+#     from sentence_transformers import SentenceTransformer
+#     # model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
+#     model = SentenceTransformer('all-MiniLM-L6-v2')
+#     article_structure = 4
+#
+#     token_position_dict = my_token_position_weight(token_list, article_structure, model, text)
+#     model = None
+#     # ---
+#
+#     probability_matrix = build_probability_matrix_position_biased(graph, token_position_dict)
+#
+#     pagerank_matrix = damping * adjacency_matrix.todense() + (1 - damping) * probability_matrix
+#
+#     vec = principal_eigenvector(pagerank_matrix.T)
+#
+#     # Because pagerank_matrix is positive, vec is always real (i.e. not complex)
+#     return process_results(graph, vec.real)
 
 
 def pagerank_weighted_topic_position_biased(graph, token_list, article_structure, damping=0.85):
@@ -495,5 +621,13 @@ def process_results(graph, vec):
     scores = {}
     for i, node in enumerate(graph.nodes()):
         scores[node] = abs(vec[i])
+
+    return scores
+
+
+def process_results_combine_sentence(text_sentence_list, vec):
+    scores = {}
+    for i, node in enumerate(text_sentence_list):
+        scores[node[0]] = abs(vec[i])
 
     return scores

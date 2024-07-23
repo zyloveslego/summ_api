@@ -54,8 +54,13 @@ class UtilsCN(Utils):
     def tagger(self, tokens):
         tag_list = []
         words = jieba.posseg.dt.cut(tokens)
+        # count = 0
         for word, flag in words:
             tag_list.append((word, flag))
+            # print(word, flag)
+            # count = count + 1
+            # if count % 10000 == 0:
+            #     print(count)
         return tag_list
 
     def word_count(self, sentence):
