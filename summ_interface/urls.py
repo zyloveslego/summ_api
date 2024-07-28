@@ -22,5 +22,5 @@ urlpatterns = [
     path("translate/", include("translate.urls")),
     path('admin/', admin.site.urls),
     path('detectai/', include('detectai.urls')),
-    # path('ai_search/', include('ai_search.urls')),
+    path('ai_search/', include('ai_search.urls')),
 ]

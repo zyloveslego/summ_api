@@ -8,6 +8,9 @@ url2 = 'http://wangserver.ddns.net:8631/my_summ/from_dict'
 #
 # url1 = 'http://127.0.0.1:8000/my_summ/'
 url2 = 'http://127.0.0.1:8000/my_summ/from_dict'
+
+url2 = 'http://wangserver.ddns.net:9013/my_summ/from_dict'
+
 # url2 = 'http://127.0.0.1:8000/my_summ/from_dict_ks'
 #
 # not dict
