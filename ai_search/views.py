@@ -12,6 +12,31 @@ from django.http import JsonResponse
 # from rank_bm25 import BM25Okapi
 import string
 
+from scholarly import scholarly
+
+
+def fetch_google_scholar_data(search_query):
+    search_results = scholarly.search_pubs(search_query)
+
+    papers = []
+    for i in range(5):
+        paper = next(search_results)
+        papers.append(paper)
+
+    response_data = {"files": []}
+
+    for paper in papers:
+        if 'arxiv' in paper['pub_url']:
+            paper['pub_url'] = paper['pub_url'].replace('abs', 'pdf')
+
+        response_data["files"].append({
+            "name": paper['bib']['title'],
+            "abstract": paper['bib']['abstract'],
+            "url": paper['pub_url']
+        })
+
+    return response_data
+
 
 # import numpy as np
 
@@ -76,22 +101,24 @@ import string
 @api_view(['POST'])
 def ai_search(request):
     query_params = request.data
-    print(query_params)
-    paper_ids = ['d749a42c-4c52-44a3-8fe8-32e20b722927', '6de82c95-fa62-4bac-a10f-63a9b2d14c5a']
-    response_data = {paper_ids[0]: ["snapshot1", "snapshot2"], paper_ids[1]: ["snapshot1", "snapshot2"]}
+    print(query_params['message'])
+    # paper_ids = ['d749a42c-4c52-44a3-8fe8-32e20b722927', '6de82c95-fa62-4bac-a10f-63a9b2d14c5a']
+    # response_data = {paper_ids[0]: ["snapshot1", "snapshot2"], paper_ids[1]: ["snapshot1", "snapshot2"]}
+    #
+    # response_data = {"files": [
+    #     {
+    #         "name": "name1",
+    #         "abstract": "abstract1",
+    #         "url": "paper_url1"
+    #     },
+    #     {
+    #         "name": "name2",
+    #         "abstract": "abstract2",
+    #         "url": "paper_url2"
+    #     }
+    # ]}
 
-    response_data = {"files": [
-        {
-            "name": "name1",
-            "abstract": "abstract1",
-            "url": "paper_url1"
-        },
-        {
-            "name": "name2",
-            "abstract": "abstract2",
-            "url": "paper_url2"
-        }
-    ]}
+    response_data = fetch_google_scholar_data(query_params['message'])
 
     return JsonResponse(response_data)
 
