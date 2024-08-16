@@ -19,21 +19,24 @@ def fetch_google_scholar_data(search_query):
     search_results = scholarly.search_pubs(search_query)
 
     papers = []
-    for i in range(5):
+    for i in range(15):
         paper = next(search_results)
         papers.append(paper)
 
     response_data = {"files": []}
 
     for paper in papers:
-        if 'arxiv' in paper['pub_url']:
-            paper['pub_url'] = paper['pub_url'].replace('abs', 'pdf')
+        try:
+            if 'arxiv' in paper['pub_url']:
+                paper['pub_url'] = paper['pub_url'].replace('abs', 'pdf')
 
-        response_data["files"].append({
-            "name": paper['bib']['title'],
-            "abstract": paper['bib']['abstract'],
-            "url": paper['pub_url']
-        })
+            response_data["files"].append({
+                "name": paper['bib']['title'],
+                "abstract": paper['bib']['abstract'],
+                "url": paper['pub_url']
+            })
+        except:
+            pass
 
     return response_data
 
@@ -120,7 +123,14 @@ def ai_search(request):
 
     response_data = fetch_google_scholar_data(query_params['message'])
 
-    return JsonResponse(response_data)
+    import random
+    random_integer = random.randint(1, 100)
+    if random_integer % 2 == 0:
+        return JsonResponse(response_data)
+    else:
+        response_data = {"chat": "This is a chat message."}
+        return JsonResponse(response_data)
+
 
 # # Create your views here.
 #
