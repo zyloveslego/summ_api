@@ -38,8 +38,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
-    # 'detectai.apps.DetectaiConfig',
-    'ai_search.apps.AiSearchConfig',
+    'detectai.apps.DetectaiConfig',
+    # 'ai_search.apps.AiSearchConfig',
 ]
 
 MIDDLEWARE = [

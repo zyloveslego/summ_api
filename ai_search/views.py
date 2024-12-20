@@ -357,6 +357,7 @@ def save_list_as_string(search_id, paper_dict):
     conn.close()
 
 
+
 def load_raw_data(search_id):
     # 连接到SQLite数据库
     conn = sqlite3.connect('search_history.db')
